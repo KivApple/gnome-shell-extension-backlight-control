@@ -1,0 +1,21 @@
+<schemalist>
+  <schema id="org.gnome.shell.extensions.backlight-control" path="/org/gnome/shell/extensions/backlight-control/">
+    <key name="ac-backlight" type="u">
+      <default>100</default>
+      <summary>Screen backlight level on AC</summary>
+    </key>
+    <key name="ac-idle-delay" type="u">
+      <default>0</default>
+      <summary>Idle delay in seconds on AC</summary>
+    </key>
+    <key name="bat-backlight" type="u">
+      <default>50</default>
+      <summary>Screen backlight level on battery</summary>
+    </key>
+    <key name="bat-idle-delay" type="u">
+      <default>300</default>
+      <summary>Idle delay in seconds on battery</summary>
+    </key>
+  </schema>
+</schemalist>
+
