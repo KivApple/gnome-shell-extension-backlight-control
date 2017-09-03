@@ -5,9 +5,6 @@ const ExtensionUtils = imports.misc.extensionUtils;
 const Me = ExtensionUtils.getCurrentExtension();
 const Convenience = Me.imports.convenience;
 
-function init() {
-}
-
 const BacklightControlSettings = new GObject.Class({
 	Name: 'BacklightControlSettings',
 	Extends: Gtk.Grid,
@@ -68,7 +65,7 @@ const BacklightControlSettings = new GObject.Class({
          	}));
 		this.attach(widget, 2, 2, 1, 1);
 		label = new Gtk.Label({
-            		label: 'Idle delay',
+            		label: 'Idle delay (minutes)',
             		hexpand: true,
             		halign: Gtk.Align.START
         	});
@@ -100,6 +97,10 @@ const BacklightControlSettings = new GObject.Class({
 		this.attach(widget, 2, 3, 1, 1);
 	}
 });
+
+function init() {
+	Convenience.initTranslations('gnome-shell-extension-backlight-control');
+}
 
 function buildPrefsWidget() {
      let widget = new BacklightControlSettings();

@@ -11,6 +11,8 @@ function makeProxyWrapperForObject(bus, object, path, ifaceName) {
 	try {	
 		let introspectable = new IntrospectableProxy(bus, object, path);
 		let iface = introspectable.IntrospectSync().toString();
+		introspectable.run_dispose();
+		introspectable = null;
 		let ifaceOffset = iface.indexOf('<interface name="' + ifaceName + '">');
 		iface = '<node>' + iface.substring(ifaceOffset, iface.indexOf('</interface>', ifaceOffset) + '</interface>'.length) + '</node>';
 		let proxy = Gio.DBusProxy.makeProxyWrapper(iface);
@@ -30,8 +32,13 @@ let OnBattery = undefined;
 
 function applySettings() {
 	const optionsPrefix = OnBattery ? 'bat-' : 'ac-';
+	if (!Screen) {
+		Screen = makeProxyWrapperForObject(Gio.DBus.session, 'org.gnome.SettingsDaemon.Power', '/org/gnome/SettingsDaemon/Power', 'org.gnome.SettingsDaemon.Power.Screen');
+	}
 	if (Screen) Screen.Brightness = settings.get_uint(optionsPrefix + 'backlight');
 	if (SessionConfig) SessionConfig.set_uint('idle-delay', settings.get_uint(optionsPrefix + 'idle-delay'));
+	if (!Screen) log('backlight-control: applySettings: Screen == null!');
+	if (!SessionConfig) log('backlight-control: applySettings: SessionConfig == null!');
 }
 
 function onBatteryStateChanged(value) {
@@ -39,7 +46,7 @@ function onBatteryStateChanged(value) {
 		value = value[0].unpack();
 		if (OnBattery !== value) {
 			OnBattery = value;
-			log('OnBattery = ' + OnBattery);
+			log('backlight-control: OnBattery = ' + OnBattery);
 			applySettings();
 		}
 	}
@@ -50,6 +57,7 @@ function UPowerPropertiesChanged(proxy) {
 }
 
 function init() {
+	Convenience.initTranslations('gnome-shell-extension-backlight-control');
 }
 
 function enable() {
@@ -62,6 +70,9 @@ function enable() {
 		onBatteryStateChanged(UPowerProperties.GetSync('org.freedesktop.UPower', 'OnBattery'));
 		UPowerProperties.connectSignal('PropertiesChanged', UPowerPropertiesChanged);
 	}
+	if (!UPowerProperties) log('backlight-control: enable:  UPowerProperties == null!');
+	if (!Screen) log('backlight-control: enable: Screen == null!');
+	if (!SessionConfig) log('backlight-control: enable: SessionConfig == null!');
 	settings.connect('changed::ac-backlight', Lang.bind(this, applySettings));
 	settings.connect('changed::ac-idle-delay', Lang.bind(this, applySettings));
 	settings.connect('changed::bat-backlight', Lang.bind(this, applySettings));
@@ -70,12 +81,11 @@ function enable() {
 
 function disable() {
 	if (UPowerProperties) {
-		UPowerProperties.disconnectSignal('PropertiesChanged', UPowerPropertiesChanged);
-		UPowerProperties.disconnect();
+		UPowerProperties.run_dispose();
 		UPowerProperties = null;
 	}
 	if (Screen) {
-		Screen.disconnect();
+		Screen.run_dispose();
 		Screen = null;
 	}
 	if (SessionConfig) {
@@ -86,5 +96,6 @@ function disable() {
 		IntrospectableProxy = null;
 	}
 	settings.run_dispose();
+	settings = null;
 }
 
