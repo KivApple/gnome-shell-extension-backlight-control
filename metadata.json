@@ -3,6 +3,7 @@
 	"description": "Change backlight settings on battery or AC",
 	"uuid": "backlight-control@kiv.apple.gmail.com",
 	"shell-version": ["3.24"],
-	"settings-schema": "org.gnome.shell.extensions.backlight-control"
+	"settings-schema": "org.gnome.shell.extensions.backlight-control",
+	"url": "https://github.com/KivApple/gnome-shell-extension-backlight-control"
 }
 
