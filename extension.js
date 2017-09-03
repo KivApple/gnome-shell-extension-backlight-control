@@ -1,3 +1,4 @@
+const GLib = imports.gi.GLib;
 const Gio = imports.gi.Gio;
 const ExtensionUtils = imports.misc.extensionUtils;
 const Lang = imports.lang;
@@ -27,6 +28,7 @@ let settings = null;
 let SessionConfig = null;
 let UPowerProperties = null;
 let Screen = null;
+let startupTimeout = null;
 
 let OnBattery = undefined;
 
@@ -66,13 +68,27 @@ function enable() {
 	SessionConfig = new Gio.Settings({ schema: 'org.gnome.desktop.session' });
 	UPowerProperties = makeProxyWrapperForObject(Gio.DBus.system, 'org.freedesktop.UPower', '/org/freedesktop/UPower', 'org.freedesktop.DBus.Properties');
 	Screen = makeProxyWrapperForObject(Gio.DBus.session, 'org.gnome.SettingsDaemon.Power', '/org/gnome/SettingsDaemon/Power', 'org.gnome.SettingsDaemon.Power.Screen');
-	if (UPowerProperties) {
-		onBatteryStateChanged(UPowerProperties.GetSync('org.freedesktop.UPower', 'OnBattery'));
-		UPowerProperties.connectSignal('PropertiesChanged', UPowerPropertiesChanged);
-	}
 	if (!UPowerProperties) log('backlight-control: enable:  UPowerProperties == null!');
 	if (!Screen) log('backlight-control: enable: Screen == null!');
 	if (!SessionConfig) log('backlight-control: enable: SessionConfig == null!');
+	if (UPowerProperties) {
+		UPowerProperties.connectSignal('PropertiesChanged', UPowerPropertiesChanged);
+		if (Screen) {
+			onBatteryStateChanged(UPowerProperties.GetSync('org.freedesktop.UPower', 'OnBattery'));	
+		} else {
+			startupTimeout = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1000, function () {
+				Screen = makeProxyWrapperForObject(Gio.DBus.session, 'org.gnome.SettingsDaemon.Power', '/org/gnome/SettingsDaemon/Power', 'org.gnome.SettingsDaemon.Power.Screen');
+				if (Screen) {
+					onBatteryStateChanged(UPowerProperties.GetSync('org.freedesktop.UPower', 'OnBattery'));
+					startupTimeout = null;
+					return false;
+				} else {
+					log('backlight-control: enable: Screen == null!');
+					return true;
+				}
+			});
+		}
+	}
 	settings.connect('changed::ac-backlight', Lang.bind(this, applySettings));
 	settings.connect('changed::ac-idle-delay', Lang.bind(this, applySettings));
 	settings.connect('changed::bat-backlight', Lang.bind(this, applySettings));
@@ -80,6 +96,10 @@ function enable() {
 }
 
 function disable() {
+	if (startupTimeout !== null) {
+		GLib.Source.remove(startupTimeout);
+		startupTimeout = null;
+	}
 	if (UPowerProperties) {
 		UPowerProperties.run_dispose();
 		UPowerProperties = null;
