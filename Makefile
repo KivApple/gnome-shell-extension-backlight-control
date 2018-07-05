@@ -1,5 +1,5 @@
-INSTALL_PATH = ~/.local/share/gnome-shell/extensions
-INSTALL_NAME = backlight-control@kiv.apple.gmail.com
+INSTALL_PATH?=~/.local/share/gnome-shell/extensions
+INSTALL_NAME=backlight-control@kiv.apple.gmail.com
 
 install: build
 	rm -rf $(INSTALL_PATH)/$(INSTALL_NAME)
